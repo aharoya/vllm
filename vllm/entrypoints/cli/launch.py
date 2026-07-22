@@ -4,7 +4,20 @@
 import argparse
 import signal
 
-import uvloop
+try:
+    import uvloop
+except ImportError:
+    uvloop = None  # type: ignore[assignment]
+
+
+def _run_uvloop_async(coro):
+    if uvloop is not None:
+        uvloop.run(coro)
+    else:
+        import asyncio
+
+        asyncio.run(coro)
+
 
 from vllm import envs
 from vllm.config import VllmConfig
@@ -54,7 +67,7 @@ class RenderSubcommand(LaunchSubcommandBase):
 
     @staticmethod
     def cmd(args: argparse.Namespace) -> None:
-        uvloop.run(run_launch_fastapi(args))
+        _run_uvloop_async(run_launch_fastapi(args))
 
 
 class LaunchSubcommand(CLISubcommand):

@@ -15,7 +15,21 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any, cast
 
-import uvloop
+try:
+    import uvloop
+except ImportError:
+    uvloop = None  # type: ignore[assignment]
+
+
+def _run_uvloop_async(coro):
+    if uvloop is not None:
+        uvloop.run(coro)
+    else:
+        import asyncio
+
+        asyncio.run(coro)
+
+
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -796,4 +810,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     validate_parsed_serve_args(args)
 
-    uvloop.run(run_server(args))
+    _run_uvloop_async(run_server(args))

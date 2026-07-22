@@ -5,7 +5,20 @@ import argparse
 import signal
 import time
 
-import uvloop
+try:
+    import uvloop
+except ImportError:
+    uvloop = None  # type: ignore[assignment]
+
+
+def _run_uvloop_async(coro):
+    if uvloop is not None:
+        uvloop.run(coro)
+    else:
+        import asyncio
+
+        asyncio.run(coro)
+
 
 import vllm
 import vllm.envs as envs
@@ -55,7 +68,7 @@ class ServeSubcommand(CLISubcommand):
         if getattr(args, "grpc", False):
             from vllm.entrypoints.grpc_server import serve_grpc
 
-            uvloop.run(serve_grpc(args))
+            _run_uvloop_async(serve_grpc(args))
             return
 
         if args.headless:
@@ -145,7 +158,7 @@ class ServeSubcommand(CLISubcommand):
         else:
             # Single API server (this process).
             args.api_server_count = None
-            uvloop.run(run_server(args))
+            _run_uvloop_async(run_server(args))
 
     def validate(self, args: argparse.Namespace) -> None:
         validate_parsed_serve_args(args)

@@ -23,8 +23,12 @@ from typing import (
 )
 
 import torch
-import uvloop
 from torch.autograd.profiler import record_function
+
+try:
+    import uvloop
+except ImportError:
+    uvloop = None  # type: ignore[assignment]
 
 import vllm.envs as envs
 from vllm.logger import init_logger
@@ -509,9 +513,16 @@ def run_api_server_worker_proc(
     set_process_title("APIServer", str(server_index))
     decorate_logs()
 
-    uvloop.run(
-        run_server_worker(listen_address, sock, args, client_config, **uvicorn_kwargs)
-    )
+    if uvloop is not None:
+        uvloop.run(
+            run_server_worker(listen_address, sock, args, client_config, **uvicorn_kwargs)
+        )
+    else:
+        import asyncio
+
+        asyncio.run(
+            run_server_worker(listen_address, sock, args, client_config, **uvicorn_kwargs)
+        )
 
 
 def wait_for_completion_or_failure(
